@@ -15,7 +15,7 @@ void Reset();
 
 State state = Setup;
 
-#define PATH_COLOR BLUE
+#define PATH_COLOR dim(BLUE, 64)
 #define AVATAR_COLOR GREEN
 #define WALL_COLOR RED
 #define FOG_COLOR WHITE
