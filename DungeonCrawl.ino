@@ -77,7 +77,7 @@ void AvatarMoving() {
         state = AvatarInit; //wall has been revealed, avatar is still here
         break;
       case RESET: //we are only listening on one face here, but catch this in case a reset has happened somehow
-        state = ResetInit;
+        state = ResetBroadcastInit;
         break;
     }
   }
@@ -97,7 +97,7 @@ void Path() {
           state = AvatarInit;
           break;
         case RESET:
-          state = ResetInit;
+          state = ResetBroadcastInit;
           break;
       }
     }
@@ -119,30 +119,48 @@ void Wall() {
           state = WallInit;
           break;
         case RESET:
-          state = ResetInit;
+          state = ResetBroadcastInit;
           break;
       }
     }
   }
   if (buttonLongPressed()) {
-    state = ResetInit;
+    state = ResetBroadcastInit;
   }
 }
 
-void ResetInit() {
+void ResetBroadcastInit() {
   setValueSentOnAllFaces(RESET);
   setColor(RESET_COLOR);
+  timer.set(512);
+  state = ResetBroadcast;
+}
+
+//broadcast reset for a bit
+void ResetBroadcast() {
+  if (timer.isExpired()) {
+    state = ResetIgnoreInit;
+  }
+}
+
+void ResetIgnoreInit() {
+  setValueSentOnAllFaces(NONE);
+  setColor(dim(RESET_COLOR, 128));
   timer.set(512);
   state = ResetIgnore;
 }
 
 //stop broadcasting reset after a bit, then ignore the reset broadcast
 void ResetIgnore() {
-  setValueSentOnAllFaces(NONE);
   if (timer.isExpired()) {
-    timer.set(512);
-    state = Reset;
+    state = ResetInit;
   }
+}
+
+
+void ResetInit() {
+  timer.set(512);
+  state = Reset;
 }
 
 //ignore reset wave for a bit more, then reinitialize
