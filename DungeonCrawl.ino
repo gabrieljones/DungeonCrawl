@@ -52,7 +52,7 @@ void Avatar() {
   }
   if (buttonDoubleClicked() || buttonMultiClicked()) { //rotate left
     byte prev = heading;
-    heading = (heading - 1) % 6;
+    heading = (heading + 5) % 6;
     setColorOnFace(AVATAR_COLOR, heading);
     setColorOnFace(PATH_COLOR, prev);
   }
