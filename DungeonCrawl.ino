@@ -27,6 +27,7 @@ byte heading = 0;
 Timer timer;
 
 void Setup() {
+  randomize();
   if(startState() == START_STATE_WE_ARE_ROOT) {
     state = AvatarInit;
   } else {
