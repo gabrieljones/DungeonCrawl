@@ -90,7 +90,7 @@ void PathInit() {
 void Path() {
   FOREACH_FACE(f) {
     if (!isValueReceivedOnFaceExpired(f)) {
-      switch(getLastValueReceivedOnFace(heading)) {
+      switch(getLastValueReceivedOnFace(f)) {
         case MOVE:
           state = AvatarInit;
           break;
@@ -111,7 +111,7 @@ void WallInit() {
 void Wall() {
   FOREACH_FACE(f) {
     if (!isValueReceivedOnFaceExpired(f)) {
-      switch(getLastValueReceivedOnFace(heading)) {
+      switch(getLastValueReceivedOnFace(f)) {
         case MOVE:
           revealed = true;
           state = WallInit;
