@@ -27,10 +27,14 @@ Other tiles become either hidden paths, or hidden walls.
 - White: Fog
 - Red: Walls
 
-### Avatar
- - **Long-press**: moves avatar along current heading unless there is a wall.
- - **Single-click**: turns avatar to the right.
- - **Double-click**: turns avatar to the left.
+### Fog Tile Next to Avatar
+ - **Single-click**: Reveal tile and move avatar to tile if it is a path.
 
-### Wall
+### Path Tile Next to Avatar
+ - **Single-click**: Move avatar to tile.
+
+### Wall Tile Next to Avatar
+ - **Single-click**: Nothing happens.
+
+### Any tile
  - **Long-press**: reset connected tiles and generate a new dungeon.

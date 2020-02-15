@@ -38,48 +38,53 @@ void Setup() {
 
 void Avatar0() {
   setValueSentOnAllFaces(AVATAR);
-  setColor(PATH_COLOR);
-  setColorOnFace(AVATAR_COLOR, heading);
+  setColor(AVATAR_COLOR);
   revealed = true; //will become revealed path after adventurer leaves
   state = Avatar;
 }
 
 void Avatar() {
-  if (buttonSingleClicked()) { //rotate right
-    byte prev = heading;
-    heading = (heading + 1) % 6;
-    setColorOnFace(AVATAR_COLOR, heading);
-    setColorOnFace(PATH_COLOR, prev);
-  }
-  if (buttonDoubleClicked() || buttonMultiClicked()) { //rotate left
-    byte prev = heading;
-    heading = (heading + 5) % 6;
-    setColorOnFace(AVATAR_COLOR, heading);
-    setColorOnFace(PATH_COLOR, prev);
+  FOREACH_FACE(f) {
+    if (!isValueReceivedOnFaceExpired(f)) {
+      switch(getLastValueReceivedOnFace(f)) {
+        case MOVE: //avatar is being pulled to neighbor revert to path
+          state = Path0;
+          break;
+        case RESET:
+          state = ResetBroadcast0;
+          break;
+      }
+    }
   }
   if (buttonLongPressed()) {
-    state = AvatarMoving0;
+    state = ResetBroadcast0;
   }
 }
 
 void AvatarMoving0() {
-  setValueSentOnFace(MOVE, heading);
+  setValueSentOnFace(MOVE, heading); //tell neighbor avatar is moving here
   state = AvatarMoving;
 }
 
 void AvatarMoving() {
-  if (!isValueReceivedOnFaceExpired(heading)) {
-    switch(getLastValueReceivedOnFace(heading)) {
-      case AVATAR:
-        state = Path0; //avatar moved onto next path, become an empty path tile
-        break;
-      case WALL_REVEALED:
-        state = Avatar0; //wall has been revealed, avatar is still here
-        break;
-      case RESET: //we are only listening on one face here, but catch this in case a reset has happened somehow
-        state = ResetBroadcast0;
-        break;
+  bool doneMoving = true;
+  FOREACH_FACE(f) {
+    if (!isValueReceivedOnFaceExpired(f)) {
+      switch(getLastValueReceivedOnFace(f)) {
+        case AVATAR: //wait for all neighbors to be not AVATARs
+          doneMoving = false;
+          break;
+        case RESET:
+          state = ResetBroadcast0;
+          break;
+      }
     }
+  }
+  if (doneMoving) { //after avatar is confirmed to be here then transition to actual Avatar state
+    state = Avatar0;
+  }
+  if (buttonLongPressed()) {
+    state = ResetBroadcast0;
   }
 }
 
@@ -90,17 +95,30 @@ void Path0() {
 }
 
 void Path() {
+  if (buttonSingleClicked()) {      
+    FOREACH_FACE(f) { //check if avatar is on neighbor
+      if (!isValueReceivedOnFaceExpired(f)) {
+        switch(getLastValueReceivedOnFace(f)) {
+          case AVATAR: //reveal and pull avatar
+            revealed = true;
+            heading = f;
+            state = AvatarMoving0;
+            break;
+        }
+      }
+    }
+  }
   FOREACH_FACE(f) {
     if (!isValueReceivedOnFaceExpired(f)) {
       switch(getLastValueReceivedOnFace(f)) {
-        case MOVE:
-          state = Avatar0;
-          break;
         case RESET:
           state = ResetBroadcast0;
           break;
       }
     }
+  }
+  if (buttonLongPressed()) {
+    state = ResetBroadcast0;
   }
 }
 
@@ -111,13 +129,22 @@ void Wall0() {
 }
 
 void Wall() {
+  if (buttonSingleClicked()) {      
+    FOREACH_FACE(f) { //check if avatar is on neighbor
+      if (!isValueReceivedOnFaceExpired(f)) {
+        switch(getLastValueReceivedOnFace(f)) {
+          case AVATAR: //reveal and don't pull avatar
+            revealed = true;
+            heading = f;
+            state = Wall0;
+            break;
+        }
+      }
+    }
+  }
   FOREACH_FACE(f) {
     if (!isValueReceivedOnFaceExpired(f)) {
       switch(getLastValueReceivedOnFace(f)) {
-        case MOVE:
-          revealed = true;
-          state = Wall0;
-          break;
         case RESET:
           state = ResetBroadcast0;
           break;
@@ -155,6 +182,9 @@ void ResetIgnore() {
   if (timer.isExpired()) {
     state = Reset0;
   }
+  if (buttonLongPressed()) {
+    state = ResetBroadcast0;
+  }
 }
 
 
@@ -167,6 +197,9 @@ void Reset0() {
 void Reset() {
   if (timer.isExpired()) {
     state = Setup;
+  }
+  if (buttonLongPressed()) {
+    state = ResetBroadcast0;
   }
 }
 
