@@ -5,45 +5,51 @@
 #define WALL_COLOR RED
 #define FOG_COLOR WHITE
 #define RESET_COLOR MAGENTA
+#define STAIRS_COLOR YELLOW
 
-enum commandStates {NONE, AVATAR, MOVE, PATH, WALL, WALL_REVEALED, RESET}; //add a treasure tile?
-bool revealed = false;
+enum tileTypes {NONE, AVATAR, FOG, PATH, WALL, STAIRS, MOVE}; //add a treasure tile?
 byte heading = 0;
 Timer timer;
 
 STATE_DEC(avatarS);
 STATE_DEC(avatarMovingS);
+STATE_DEC(fogS);
 STATE_DEC(pathS);
+STATE_DEC(stairsS);
 STATE_DEC(wallS);
-STATE_DEC(resetBroadcastS);
-STATE_DEC(resetIgnoreS);
-STATE_DEC(resetS);
+
+bool noPathToAvatar() {
+  FOREACH_FACE(f) {
+    if (!isValueReceivedOnFaceExpired(f) && getLastValueReceivedOnFace(f) != NONE) {
+      return false;
+    }
+  }
+  return true;
+}
 
 STATE_DEF(setupS,
   { //entry
-    revealed = false;
     randomize();
   },
   { //loop
-    if(startState() == START_STATE_WE_ARE_ROOT) {
-      changeState(avatarS::state);
-    } else {
-      changeState(random(2) == 0 ? wallS::state : pathS::state);
-    }
+    changeState(startState() == START_STATE_WE_ARE_ROOT ? avatarS::state : fogS::state);
   }
 )
 
 STATE_DEF(avatarS, 
   { //entry
-    setValueSentOnAllFaces(AVATAR);
+    //TODO set faces telling neighbors type of tile they are
+    FOREACH_FACE(f) {
+      setValueSentOnFace(f, f); //debug 
+    }
     setColor(AVATAR_COLOR);
-    revealed = true; //will become revealed path after adventurer leaves
   },
   { //loop
     FOREACH_FACE(f) {
       if (!isValueReceivedOnFaceExpired(f)) {
         switch(getLastValueReceivedOnFace(f)) {
           case MOVE: //avatar is being pulled to neighbor revert to path
+            setValueSentOnFace(NONE, f); //inform requesting tile that the avatar has left this tile to live on the requesting tile
             changeState(pathS::state);
             break;
         }
@@ -54,46 +60,68 @@ STATE_DEF(avatarS,
 
 STATE_DEF(avatarMovingS, 
   { //entry
-    setValueSentOnFace(MOVE, heading); //tell neighbor avatar is moving here
+    setValueSentOnFace(MOVE, heading); //request the avatar move here
     setColorOnFace(AVATAR_COLOR, heading);
     setColorOnFace(AVATAR_COLOR, (heading + 1) % 6);
     setColorOnFace(AVATAR_COLOR, (heading + 5) % 6);
+    timer.set(512); //if the avatar does not move here, then it must not be on the neighbor
   },
   { //loop
     bool doneMoving = true;
     FOREACH_FACE(f) {
       if (!isValueReceivedOnFaceExpired(f)) {
         switch(getLastValueReceivedOnFace(f)) {
-          case AVATAR: //wait for all neighbors to be not AVATARs
+          case PATH: //wait for all neighbors to be not PATHs, this means the AVATAR has moved to us
             doneMoving = false;
-            break;
-          case RESET:
-            changeState(resetBroadcastS::state);
             break;
         }
       }
     }
+    if (timer.isExpired()) { //avatar did not move here revert back to empty path
+      setValueSentOnFace(NONE, heading); //stop requesting avatar moves here
+      changeState(pathS::state);
+    }
     if (doneMoving) { //after avatar is confirmed to be here then transition to actual Avatar state
       changeState(avatarS::state);
     }
-    if (buttonLongPressed()) {
-      changeState(resetBroadcastS::state);
+  }
+)
+
+STATE_DEF(fogS, 
+  { //entry
+    setValueSentOnAllFaces(NONE);
+    setColor(FOG_COLOR);
+  },
+  { //loop
+    FOREACH_FACE(f) {
+      if (!isValueReceivedOnFaceExpired(f)) {
+        switch(getLastValueReceivedOnFace(f)) {
+          case WALL:
+            changeState(wallS::state);
+            break;
+          case PATH:
+            changeState(pathS::state);
+            break;
+          case STAIRS:
+            changeState(stairsS::state);
+            break;
+        }
+      }
     }
   }
 )
 
 STATE_DEF(pathS, 
   { //entry
-    setValueSentOnAllFaces(PATH);
-    setColor(revealed ? PATH_COLOR : FOG_COLOR);
+//leave faces as they are    setValueSentOnAllFaces(PATH); 
+    setColor(PATH_COLOR);
   },
   { //loop
     if (buttonSingleClicked()) {
       FOREACH_FACE(f) { //check if avatar is on neighbor
         if (!isValueReceivedOnFaceExpired(f)) {
           switch(getLastValueReceivedOnFace(f)) {
-            case AVATAR: //reveal and pull avatar
-              revealed = true;
+            case PATH: //a neighbor is telling us we are a path, it might be the avatar, attempt to pull avatar
               heading = f;
               changeState(avatarMovingS::state);
               break;
@@ -101,98 +129,42 @@ STATE_DEF(pathS,
         }
       }
     }
-    FOREACH_FACE(f) {
-      if (!isValueReceivedOnFaceExpired(f)) {
-        switch(getLastValueReceivedOnFace(f)) {
-          case RESET:
-            changeState(resetBroadcastS::state);
-            break;
-        }
-      }
-    }
-    if (buttonLongPressed()) {
-      changeState(resetBroadcastS::state);
-    }
+    if(noPathToAvatar()) { changeState(fogS::state); }
   }
 )
 
-STATE_DEF(wallS, 
+
+STATE_DEF(stairsS, 
   { //entry
-    setValueSentOnAllFaces(revealed ? WALL_REVEALED : WALL);
-    setColor(revealed ? WALL_COLOR : FOG_COLOR);
+//leave faces as they are    setValueSentOnAllFaces(PATH); 
+    FOREACH_FACE(f) { 
+      setColorOnFace(dim(STAIRS_COLOR, f * (255 / 6)), f);
+    }
   },
   { //loop
     if (buttonSingleClicked()) {
       FOREACH_FACE(f) { //check if avatar is on neighbor
         if (!isValueReceivedOnFaceExpired(f)) {
           switch(getLastValueReceivedOnFace(f)) {
-            case AVATAR: //reveal and don't pull avatar
-              revealed = true;
+            case STAIRS: //a neighbor is telling us we are stairs, it might be the avatar, attempt to pull avatar
               heading = f;
-              changeState(wallS::state);
+              changeState(avatarMovingS::state);
               break;
           }
         }
       }
     }
-    FOREACH_FACE(f) {
-      if (!isValueReceivedOnFaceExpired(f)) {
-        switch(getLastValueReceivedOnFace(f)) {
-          case RESET:
-            changeState(resetBroadcastS::state);
-            break;
-        }
-      }
-    }
-    if (buttonLongPressed()) {
-      changeState(resetBroadcastS::state);
-    }
+    if(noPathToAvatar()) { changeState(fogS::state); }   
   }
 )
 
-//broadcast reset for a bit
-STATE_DEF(resetBroadcastS, 
+STATE_DEF(wallS, 
   { //entry
-    setValueSentOnAllFaces(RESET);
-    setColor(RESET_COLOR);
-    timer.set(512);
+//leave faces as they are    setValueSentOnAllFaces(NONE);
+    setColor(WALL_COLOR);
   },
   { //loop
-    if (timer.isExpired()) {
-      changeState(resetIgnoreS::state);
-    }
-  }
-)
-
-//stop broadcasting reset after a bit, then ignore the reset broadcast
-STATE_DEF(resetIgnoreS, 
-  { //entry
-    setValueSentOnAllFaces(NONE);
-    setColor(dim(RESET_COLOR, 128));
-    timer.set(512);
-  },
-  { //loop
-    if (timer.isExpired()) {
-      changeState(resetS::state);
-    }
-    if (buttonLongPressed()) {
-      changeState(resetBroadcastS::state);
-    }
-  }
-)
-
-//ignore reset wave for a bit more, then reinitialize
-STATE_DEF(resetS, 
-  { //entry
-    timer.set(512);
-  },
-  { //loop
-    if (timer.isExpired()) {
-      changeState(setupS::state);
-    }
-    if (buttonLongPressed()) {
-      changeState(resetBroadcastS::state);
-    }
+    if(noPathToAvatar()) { changeState(fogS::state); }
   }
 )
 
