@@ -50,19 +50,16 @@ void Avatar() {
         case MOVE: //avatar is being pulled to neighbor revert to path
           state = Path0;
           break;
-        case RESET:
-          state = ResetBroadcast0;
-          break;
       }
     }
-  }
-  if (buttonLongPressed()) {
-    state = ResetBroadcast0;
   }
 }
 
 void AvatarMoving0() {
   setValueSentOnFace(MOVE, heading); //tell neighbor avatar is moving here
+  setColorOnFace(AVATAR_COLOR, heading);
+  setColorOnFace(AVATAR_COLOR, (heading + 1) % 6);
+  setColorOnFace(AVATAR_COLOR, (heading + 5) % 6);
   state = AvatarMoving;
 }
 
