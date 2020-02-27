@@ -1,17 +1,6 @@
 typedef void (*State) ();
 
 void Setup();
-void Avatar0();
-void Avatar();
-void AvatarMoving0();
-void AvatarMoving();
-void Path0();
-void Path();
-void Wall0();
-void Wall();
-void Reset0();
-void ResetIgnore();
-void Reset();
 
 State state = Setup;
 
