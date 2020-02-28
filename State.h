@@ -47,7 +47,7 @@ STATE_DEF(stateName1,
   }
 )
 
-STATE_DEF(name2, 
+STATE_DEF(stateName2, 
   {
     //entry function body
   }, 
