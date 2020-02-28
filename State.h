@@ -31,6 +31,7 @@ namespace stateName { \
 }
 
 /* Usage
+#include "State.h"
 
 STATE_DEC(stateName1)
 STATE_DEC(stateName2)
@@ -56,4 +57,12 @@ STATE_DEF(name2,
     changeState(stateName1::state);
   }
 )
+
+void setup() {
+  changeState(stateName1::state); //required, enter the initial state
+}
+
+void loop() {
+  stateFn(); //required, calls the appropriate loop function
+}
 */
