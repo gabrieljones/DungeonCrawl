@@ -6,8 +6,8 @@
 #define FOG_COLOR WHITE
 #define RESET_COLOR MAGENTA
 #define STAIRS_COLOR YELLOW
-//#define GAME_TIME_MAX 360000 //6 minutes
-#define GAME_TIME_MAX 10000 //10 seconds
+#define GAME_TIME_MAX 360000 //6 minutes
+//#define GAME_TIME_MAX 10000 //10 seconds
 #define LEVEL_MAX 6
 
 enum tileTypes {NONE, FOG, PATH, WALL, STAIRS, MOVE, BECOME_PATH, BECOME_WALL, BECOME_STAIRS, BECOME_FOG, ASCEND, WIN, LOSE}; //add a treasure tile?
@@ -15,8 +15,10 @@ byte gameOverState = NONE;
 byte heading = 0;
 Timer timer;
 unsigned long startMillis;
-byte level = 6;
+byte level = 0;
 byte neighbors[6];
+bool isStairs = false;
+bool avatarReceived = false;
 
 STATE_DEC(setupAvatarS);
 STATE_DEC(avatarS);
@@ -62,13 +64,18 @@ void conformToAvatarMap() {
   }
 }
 
-bool receiveAvatar(byte entranceFace, byte* level, int* millisRemaining) {
+bool receiveAvatar(byte entranceFace, byte* level, unsigned long* millisRemaining) {
       //look for the avatarDatagram
   if (isDatagramReadyOnFace(entranceFace)) {//is there a packet?
-    if (getDatagramLengthOnFace(entranceFace) == 3) {//is it the right length?
+    if (getDatagramLengthOnFace(entranceFace) == 5) {//is it the right length?
       byte *data = (byte *) getDatagramOnFace(entranceFace);//grab the data
       byte currentLevel = data[0];
-//      byte millisRemaining = data[1];
+      unsigned long mr = 0;
+      mr += data[1] << 24;
+      mr += data[2] << 16;
+      mr += data[3] << 8;
+      mr += data[4];
+      *millisRemaining = mr; 
       markDatagramReadOnFace(entranceFace); // free datagram buffer
       return true;
     }
@@ -76,11 +83,13 @@ bool receiveAvatar(byte entranceFace, byte* level, int* millisRemaining) {
   return false;
 }
 
-void sendAvatar(byte exitFace, byte level, int millisRemaining) {
-  byte data[3];  // level and millisRemaining
+void sendAvatar(byte exitFace, byte level, unsigned long millisRemaining) {
+  byte data[5];  // level and millisRemaining
   data[0] = level;
-  data[1] = millisRemaining;
-//  data[2] = currentCarHue;
+  data[1] = millisRemaining >> 24;
+  data[2] = millisRemaining >> 16;
+  data[3] = millisRemaining >> 8;
+  data[4] = millisRemaining;
   sendDatagramOnFace(&data, sizeof(data), exitFace);
 }
 
@@ -180,13 +189,15 @@ STATE_DEF(avatarLeavingS,
   { //loop
     sendAvatar(heading, level, millis() - startMillis);
     changeState(avatarLeftS::state);
-    
   }
 )
 
 STATE_DEF(avatarLeftS, 
   { //entry
-    timer.set(150); //timeout for sending avatar datagram
+    timer.set(1000); //timeout for sending avatar datagram
+    setValueSentOnAllFaces(PATH);
+    setColor(OFF);
+    setColorOnFace(AVATAR_COLOR, heading);
   },
   { //loop
     if (timer.isExpired()) { //avatar datagram was not acknowledged within timeout
@@ -198,6 +209,7 @@ STATE_DEF(avatarLeftS,
           changeState(pathS::state);
           break;
         case BECOME_FOG: //avatar ascended stairs
+        case WIN: 
           changeState(fogS::state);
           break;
       }
@@ -211,47 +223,26 @@ STATE_DEF(avatarEnteringS,
     setColorOnFace(AVATAR_COLOR, heading);
     setColorOnFace(AVATAR_COLOR, (heading + 1) % 6);
     setColorOnFace(AVATAR_COLOR, (heading + 5) % 6);
+    avatarReceived = false;
   },
   { //loop
-    int millisRemaining;
-    receiveAvatar(heading, &level, &millisRemaining);
-    
-    bool doneMoving = true;
-    FOREACH_FACE(f) {
-      if (!isValueReceivedOnFaceExpired(f)) {
-        switch(getLastValueReceivedOnFace(f)) {
-          case BECOME_PATH: //wait for all neighbors to be not BECOME_PATHs, this means the AVATAR has moved to us
-            doneMoving = false;
-            break;
-        }
+    if (!avatarReceived) {
+      unsigned long millisRemaining;
+      byte levelReceived;
+      avatarReceived = receiveAvatar(heading, &levelReceived, &millisRemaining);
+      if (avatarReceived) {
+        setColorOnFace(AVATAR_COLOR, (heading + 3) % 6);
+        startMillis = millis() - millisRemaining;
+        level = levelReceived;
       }
     }
-    if (doneMoving) { //after avatar is confirmed to be here then transition to actual Avatar state
-      changeState(avatarS::state);
-    }
-  }
-)
-
-STATE_DEF(avatarAscendingS, 
-  { //entry
-    setValueSentOnFace(MOVE, heading); //request the avatar move here
-    setColorOnFace(AVATAR_COLOR, heading);
-    setColorOnFace(AVATAR_COLOR, (heading + 1) % 6);
-    setColorOnFace(AVATAR_COLOR, (heading + 5) % 6);
-  },
-  { //loop
-    bool doneMoving = true;
-    FOREACH_FACE(f) {
-      if (!isValueReceivedOnFaceExpired(f)) {
-        switch(getLastValueReceivedOnFace(f)) {
-          case BECOME_STAIRS: //wait for all neighbors to be not BECOME_STAIRSs, this means the AVATAR has moved to us
-            doneMoving = false;
-            break;
-        }
+    bool doneMoving = getLastValueReceivedOnFace(heading) == PATH;
+    if (avatarReceived && doneMoving) { //after avatar is confirmed to be here then transition to actual Avatar state
+      if ( isStairs) {
+        changeState(avatarAscendedS::state);
+      } else {
+        changeState(avatarS::state);
       }
-    }
-    if (doneMoving) { //after avatar is confirmed to be here then transition to actual ascended state
-      changeState(avatarAscendedS::state);
     }
   }
 )
@@ -269,14 +260,8 @@ STATE_DEF(avatarAscendedS,
     }
     bool doneAscending = true;
     FOREACH_FACE(f) {
-      if (!isValueReceivedOnFaceExpired(f)) {
-        switch(getLastValueReceivedOnFace(f)) {
-          case FOG: //wait for all neighbors to be FOG, this means the AVATAR has ascended
-            break;
-          default:
-            doneAscending = false;
-            break;
-        }
+      if (!isValueReceivedOnFaceExpired(f) && getLastValueReceivedOnFace(f) != FOG) {
+        doneAscending = false; //wait for all neighbors to be FOG, this means the AVATAR has ascended
       }
     }
     if (doneAscending) { //after avatar is confirmed to have ascended then transition to actual Avatar state
@@ -289,6 +274,7 @@ STATE_DEF(fogS,
   { //entry
     setValueSentOnAllFaces(FOG);
     setColor(FOG_COLOR);
+    isStairs = false;
   },
   { //loop
     conformToAvatarMap();
@@ -300,8 +286,11 @@ STATE_DEF(pathS,
   { //entry
     setValueSentOnAllFaces(PATH);
     setColor(PATH_COLOR);
+    isStairs = false;
   },
   { //loop
+    if(isAlone()) { changeState(fogS::state); return; }
+    conformToAvatarMap();
     if (buttonSingleClicked()) {
       FOREACH_FACE(f) { //check if avatar is on neighbor
         if (!isValueReceivedOnFaceExpired(f)) {
@@ -314,8 +303,6 @@ STATE_DEF(pathS,
         }
       }
     }
-    if(isAlone()) { changeState(fogS::state); return; }
-    conformToAvatarMap();
   }
 )
 
@@ -326,22 +313,23 @@ STATE_DEF(stairsS,
     FOREACH_FACE(f) { 
       setColorOnFace(dim(STAIRS_COLOR, f * (255 / 6)), f);
     }
+    isStairs = true;
   },
   { //loop
+    if(isAlone()) { changeState(fogS::state); return; }
+    conformToAvatarMap();
     if (buttonSingleClicked()) {
       FOREACH_FACE(f) { //check if avatar is on neighbor
         if (!isValueReceivedOnFaceExpired(f)) {
           switch(getLastValueReceivedOnFace(f)) {
             case BECOME_STAIRS: //a neighbor is telling us we are stairs, it might be the avatar, attempt to pull avatar
               heading = f;
-              changeState(avatarAscendingS::state);
+              changeState(avatarEnteringS::state);
               break;
           }
         }
       }
     }
-    if(isAlone()) { changeState(fogS::state); return; }
-    conformToAvatarMap();
   }
 )
 
@@ -349,6 +337,7 @@ STATE_DEF(wallS,
   { //entry
     setValueSentOnAllFaces(WALL);
     setColor(WALL_COLOR);
+    isStairs = false;
   },
   { //loop
     if(isAlone()) { changeState(fogS::state); return; }
