@@ -9,8 +9,9 @@
 #define GAME_TIME_MAX 360000 //6 minutes
 //#define GAME_TIME_MAX 10000 //10 seconds
 #define LEVEL_MAX 6
-
+//                 0    1    10    11     100   101          110         111          1000         1001     1010  1011 1100
 enum tileTypes {NONE, FOG, PATH, WALL, STAIRS, MOVE, BECOME_PATH, BECOME_WALL, BECOME_STAIRS, BECOME_FOG, ASCEND, WIN, LOSE}; //add a treasure tile?
+AM/BECOME FOG,PATH,WALL,STAIRS AVATAR 012345WL
 byte gameOverState = NONE;
 byte heading = 0;
 Timer timer;
@@ -64,40 +65,10 @@ void conformToAvatarMap() {
   }
 }
 
-bool receiveAvatar(byte entranceFace, byte* level, unsigned long* millisRemaining) {
-      //look for the avatarDatagram
-  if (isDatagramReadyOnFace(entranceFace)) {//is there a packet?
-    if (getDatagramLengthOnFace(entranceFace) == 5) {//is it the right length?
-      byte *data = (byte *) getDatagramOnFace(entranceFace);//grab the data
-      byte currentLevel = data[0];
-      unsigned long mr = 0;
-      mr += data[1] << 24;
-      mr += data[2] << 16;
-      mr += data[3] << 8;
-      mr += data[4];
-      *millisRemaining = mr; 
-      markDatagramReadOnFace(entranceFace); // free datagram buffer
-      return true;
-    }
-  }
-  return false;
-}
-
-void sendAvatar(byte exitFace, byte level, unsigned long millisRemaining) {
-  byte data[5];  // level and millisRemaining
-  data[0] = level;
-  data[1] = millisRemaining >> 24;
-  data[2] = millisRemaining >> 16;
-  data[3] = millisRemaining >> 8;
-  data[4] = millisRemaining;
-  sendDatagramOnFace(&data, sizeof(data), exitFace);
-}
-
 STATE_DEF(setupAvatarS,
   { //entry
     randomize();
     startMillis = millis();
-    level = 0;
   },
   { //loop
     changeState(avatarS::state);
