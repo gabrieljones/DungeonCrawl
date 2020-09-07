@@ -40,18 +40,21 @@ Long press a `Fog` tile to change it to the avatar.
  - Indicates the current sublevel by the number of lit pips.
 
 ### Path
+ - Color: Dark Blue
 #### Adjacent to Avatar
  - **Single-click**: Move avatar to tile.
 #### Away from Avatar
  - After some time reverts to `Fog`.
 
 ### Stairs
+ - Color: Yellow
 #### Adjacent to Avatar
  - **Single-click**: Move avatar to tile and ascend to next level above.
 #### Away from Avatar
  - After some time reverts to `Fog`.
 
 ### Wall
+ - Color: Red
 #### Adjacent to Avatar
  - **Single-click**: Nothing happens.
 #### Away from Avatar
@@ -59,6 +62,12 @@ Long press a `Fog` tile to change it to the avatar.
 
 ## Reset
  - **Long-press**: Reset all connected tiles to `Fog` and reset timer, to get ready for a new game.
+
+## Issues
+ - Possible to clone Avatar, this is unintentional.
+ - Other Avatars are consumed by the ASCEND broadcast.
+ -- If I made Avatars ignore ASCEND, then multiple players each racing their own Avatar to the surface might be a thing.
+ - Need a victory animation for the Avatar tile itself.
 
 
 
