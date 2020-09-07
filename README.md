@@ -14,8 +14,8 @@ Beware, areas of the labyrinth that are out of sight tend to change.
 
 ## Setup
 
-All tiles start as `Fog` tiles.
-Long press a `Fog` tile to change it to the avatar.
+All tiles start as `Fog`.
+Long press a `Fog` tile to change it to the `Avatar`.
 
 ## Gameplay
 
@@ -68,6 +68,6 @@ Long press a `Fog` tile to change it to the avatar.
  - Other Avatars are consumed by the ASCEND broadcast.
    - If I made Avatars ignore ASCEND, then multiple players each racing their own Avatar to the surface might be a thing.
  - Need a victory animation for the Avatar tile itself.
-
+ - Six minutes is too long for the current difficulty. Might make it three minutes instead.
 
 
