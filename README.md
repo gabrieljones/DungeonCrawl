@@ -66,7 +66,7 @@ Long press a `Fog` tile to change it to the avatar.
 ## Issues
  - Possible to clone Avatar, this is unintentional.
  - Other Avatars are consumed by the ASCEND broadcast.
- -- If I made Avatars ignore ASCEND, then multiple players each racing their own Avatar to the surface might be a thing.
+   - If I made Avatars ignore ASCEND, then multiple players each racing their own Avatar to the surface might be a thing.
  - Need a victory animation for the Avatar tile itself.
 
 
