@@ -19,45 +19,46 @@ Long press a `Fog` tile to change it to the avatar.
 
 ## Gameplay
 
-- Place Fog tiles next to the avatar to reveal the adjacent space around the avatar.
-- Click on `Path` tiles adjacent to the avatar to move the avatar to that tile.
-- Click on `Stairs` tiles adjacent to the avatar to ascend to the level above.
-- Remove tiles from the board to create new fog tiles that can be placed next the avatar to reveal as yet unexplored areas of the labyrinth.
+- Place `Fog` tiles next to the `Avatar` to reveal the adjacent space around the `Avatar`.
+- Click on `Path` tiles adjacent to the `Avatar` to move the avatar to that tile.
+- Click on `Stairs` tiles adjacent to the `Avatar` to ascend to the level above.
+- Remove tiles from the board to create new `Fog` tiles that can be placed next the `Avatar` to reveal as yet unexplored areas of the labyrinth.
 - If you escape the labyrinth within the allotted time you escape (WIN).
-- If you fail to find the sixth and final stairs to the surface before time is up you starve and are imprisoned within the labyrinth forever (LOSE).
+- If you fail to find the sixth and final `Stairs` to the surface before time is up you starve and are imprisoned within the labyrinth forever (LOSE).
 
-### Colors
-- Green: Avatar
-- Blue: Empty Path
-- White: Fog
-- Red: Walls
-- Yellow: Stairs to the next level above
+## Tiles
 
-### Fog Tile
+### Fog
+ - Color: White
+ - Indicates time remaining.
  - **Long-press**: Become `Avatar`.
  - **Place next to `Avatar`**: Reveal that tile.
  - **Place next to other tile**: Stay `Fog`.
 
-### Avatar Tile
-Indicates the current sublevel by the number of lit pips.
+### Avatar
+ - Color: Green
+ - Indicates the current sublevel by the number of lit pips.
 
-### Path Tile Next to Avatar
+### Path
+#### Adjacent to Avatar
  - **Single-click**: Move avatar to tile.
+#### Away from Avatar
+ - After some time reverts to `Fog`.
 
-### Stairs Tile Next to Avatar
+### Stairs
+#### Adjacent to Avatar
  - **Single-click**: Move avatar to tile and ascend to next level above.
+#### Away from Avatar
+ - After some time reverts to `Fog`.
 
-### Wall Tile Next to Avatar
+### Wall
+#### Adjacent to Avatar
  - **Single-click**: Nothing happens.
-
-### Path Tile
-After a some time reverts to `Fog`.
-
-### Wall Tile
-After a some time reverts to `Fog`.
+#### Away from Avatar
+ - After some time reverts to `Fog`.
 
 ## Reset
- - **Long-press**: Reset all connected tiles to Fog tiles to get ready for a new game.
+ - **Long-press**: Reset all connected tiles to `Fog` and reset timer, to get ready for a new game.
 
 
 
