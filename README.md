@@ -43,19 +43,19 @@ Long press a `Fog` tile to change it to the avatar.
  - Color: Dark Blue
  - Adjacent to `Avatar`
    - **Single-click**: Move avatar to tile.
- - Away from Avatar
+ - Away from `Avatar`
    - After some time reverts to `Fog`.
 
 ### Stairs
  - Color: Yellow
- - Adjacent to Avatar
+ - Adjacent to `Avatar`
    - **Single-click**: Move avatar to tile and ascend to next level above.
  - Away from `Avatar`
    - After some time reverts to `Fog`.
 
 ### Wall
  - Color: Red
- - Adjacent to Avatar
+ - Adjacent to `Avatar`
    - **Single-click**: Nothing happens.
  - Away from `Avatar`
    - After some time reverts to `Fog`.
